@@ -2,12 +2,14 @@ package config
 
 import (
 	"crypto/ecdsa"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/aidarkhanov/nanoid"
 	ecrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/mrshah-at-ibm/kaleido-project/pkg/kube"
 	"gopkg.in/yaml.v2"
@@ -152,6 +154,48 @@ func ClaimAddress() ([]string, error) {
 	}
 }
 
+func PickAddress() ([]string, error) {
+	conf, err := ReadConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	var addresses []string
+	if len(conf.Addresses)-len(conf.Claims) >= int(conf.NumWorkers) {
+		for i := 0; i < int(conf.NumWorkers); i++ {
+			newaddr := findNewAddress(conf)
+			newclaim := &Claim{
+				Address:   newaddr,
+				Claimtime: time.Now().Unix(),
+			}
+			conf.Claims = append(conf.Claims, newclaim)
+			addresses = append(addresses, newaddr)
+		}
+
+		err = WriteConfig(conf)
+		if err != nil {
+			return nil, err
+		}
+
+		return addresses, nil
+	} else {
+		for i := 0; i < int(conf.NumWorkers); i++ {
+			newaddr, err := searchExpired(conf)
+			if err != nil {
+				newaddr = conf.Addresses[0]
+			}
+			addresses = append(addresses, newaddr)
+		}
+
+		err = WriteConfig(conf)
+		if err != nil {
+			return nil, err
+		}
+
+		return addresses, nil
+	}
+}
+
 func RetainOwnership(address string) error {
 	conf, err := ReadConfig()
 	if err != nil {
@@ -215,18 +259,18 @@ func searchExpired(c *Config) (string, error) {
 	return "", errors.New("not enough unclaimed address found")
 }
 
-func ReadAllPrivateKeys() (map[string]string, error) {
+func ReadAllPrivateKeys() (map[string][]byte, error) {
 	if os.Getenv("INCLUSTER") == "" {
 		b, err := ioutil.ReadFile("./privatekeys.yaml")
 		if err != nil {
 			if os.IsNotExist(err) {
-				data := map[string]string{}
+				data := map[string][]byte{}
 				return data, nil
 			}
 			return nil, err
 		}
 
-		data := map[string]string{}
+		data := map[string][]byte{}
 		err = yaml.Unmarshal(b, data)
 		if err != nil {
 			return nil, err
@@ -238,7 +282,7 @@ func ReadAllPrivateKeys() (map[string]string, error) {
 		data, err := kube.ReadSecret(ns, "privatekey")
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
-				data = map[string]string{}
+				data = map[string][]byte{}
 			} else {
 				return nil, err
 			}
@@ -248,7 +292,7 @@ func ReadAllPrivateKeys() (map[string]string, error) {
 	}
 }
 
-func WriteAllPrivateKeys(data map[string]string) error {
+func WriteAllPrivateKeys(data map[string][]byte) error {
 
 	if os.Getenv("INCLUSTER") == "" {
 		b, err := yaml.Marshal(data)
@@ -270,24 +314,19 @@ func WriteAllPrivateKeys(data map[string]string) error {
 }
 
 func SavePrivateKey(address string, key *ecdsa.PrivateKey) error {
-	fmt.Println("Provided private key to save:", key)
-	// x509Encoded, err := x509.MarshalECPrivateKey(key)
-	// if err != nil {
-	// 	return err
-	// }
-	// pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
+	b := key.D.Bytes()
 
-	b := ecrypto.FromECDSA(key)
-	fmt.Println("Saving private key:", string(b))
+	bstring := base64.StdEncoding.EncodeToString(b)
+
 	data, err := ReadAllPrivateKeys()
 	if err != nil {
 		return err
 	}
 
 	if data == nil {
-		data = map[string]string{}
+		data = map[string][]byte{}
 	}
-	data[address] = string(b)
+	data[address] = []byte(bstring)
 	err = WriteAllPrivateKeys(data)
 	if err != nil {
 		return err
@@ -304,11 +343,15 @@ func ReadPrivateKey(address string) (*ecdsa.PrivateKey, error) {
 
 	pemEncoded := data[address]
 
-	if pemEncoded == "" {
+	if pemEncoded == nil {
 		return nil, nil
 	}
 
-	privateKey, err := ecrypto.ToECDSA([]byte(pemEncoded))
+	pemEncodedBytes, err := base64.StdEncoding.DecodeString(string(pemEncoded))
+	if err != nil {
+		return nil, err
+	}
+	privateKey, err := ecrypto.ToECDSA([]byte(pemEncodedBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +359,6 @@ func ReadPrivateKey(address string) (*ecdsa.PrivateKey, error) {
 	// x509Encoded := block.Bytes
 	// privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
 
-	fmt.Println("Read private key:", privateKey)
 	return privateKey, nil
 }
 
@@ -397,4 +439,128 @@ func ReadContractABI(address string) (string, error) {
 	}
 
 	return abi, nil
+}
+
+func GetGithubClientID() (string, error) {
+	if os.Getenv("INCLUSTER") == "" {
+		return "", errors.New("not running in a cluster")
+	} else {
+
+		ns := os.Getenv("NAMESPACE")
+
+		data, err := kube.ReadSecret(ns, "githublogin")
+		if err != nil {
+			return "", err
+		}
+		clientid, ok := data["clientid"]
+		if !ok {
+			return "", errors.New("clientid not found")
+		}
+		return string(clientid), nil
+	}
+}
+
+func GetGithubClientSecret() (string, error) {
+	if os.Getenv("INCLUSTER") == "" {
+		return "", errors.New("not running in a cluster")
+
+	} else {
+
+		ns := os.Getenv("NAMESPACE")
+
+		data, err := kube.ReadSecret(ns, "githublogin")
+		if err != nil {
+			return "", err
+		}
+		clientsecret, ok := data["clientsecret"]
+		if !ok {
+			return "", errors.New("clientid not found")
+		}
+		return string(clientsecret), nil
+	}
+
+}
+
+func GetGithubRedirectURL() (string, error) {
+	if os.Getenv("INCLUSTER") == "" {
+		return "", errors.New("not running in a cluster")
+
+	} else {
+
+		ns := os.Getenv("NAMESPACE")
+
+		data, err := kube.ReadSecret(ns, "githublogin")
+		if err != nil {
+			return "", err
+		}
+		redirecturl, ok := data["redirecturl"]
+		if !ok {
+			return "", errors.New("clientid not found")
+		}
+		return string(redirecturl), nil
+	}
+
+}
+
+func GenerateToken() string {
+	return nanoid.New()
+}
+
+func SaveToken(token string) error {
+	if os.Getenv("INCLUSTER") == "" {
+		return errors.New("not running in a cluster")
+	} else {
+
+		ns := os.Getenv("NAMESPACE")
+
+		data, err := kube.ReadSecret(ns, "logintokens")
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				data = map[string][]byte{}
+			} else {
+				return err
+			}
+		}
+
+		data[token] = []byte("valid")
+
+		err = kube.WriteSecret(ns, "logintokens", data)
+		return err
+	}
+}
+
+func IsTokenValid(token string) (bool, error) {
+	if os.Getenv("INCLUSTER") == "" {
+		return false, errors.New("not running in a cluster")
+	} else {
+
+		ns := os.Getenv("NAMESPACE")
+
+		data, err := kube.ReadSecret(ns, "logintokens")
+		if err != nil {
+			return false, err
+		}
+
+		_, val := data[token]
+		return val, nil
+	}
+}
+
+func DeleteToken(token string) error {
+	if os.Getenv("INCLUSTER") == "" {
+		return errors.New("not running in a cluster")
+	} else {
+
+		ns := os.Getenv("NAMESPACE")
+
+		data, err := kube.ReadSecret(ns, "logintokens")
+		if err != nil {
+			return err
+		}
+
+		delete(data, token)
+
+		err = kube.WriteSecret(ns, "logintokens", data)
+		return err
+	}
 }
