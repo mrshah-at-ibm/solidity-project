@@ -154,7 +154,7 @@ func (e *Executer) MintToken(to string) (*types.Receipt, error) {
 	e.Nonce++
 	if err != nil {
 		if strings.Contains(err.Error(), "nonce too low") {
-			e.MintToken(to)
+			return e.MintToken(to)
 		}
 
 		e.Logger.Error(err)
@@ -193,7 +193,7 @@ func (e *Executer) BurnToken(tokenid string) (*types.Receipt, error) {
 	tokenint, err := strconv.Atoi(tokenid)
 	if err != nil {
 		if err.Error() == "nonce too low" {
-			e.BurnToken(tokenid)
+			return e.BurnToken(tokenid)
 		}
 		e.Logger.Error(err)
 		return nil, err
@@ -251,7 +251,7 @@ func (e *Executer) TransferToken(from string, to string, tokenid string) (*types
 	tokenint, err := strconv.Atoi(tokenid)
 	if err != nil {
 		if err.Error() == "nonce too low" {
-			e.BurnToken(tokenid)
+			return e.BurnToken(tokenid)
 		}
 		e.Logger.Error(err)
 		return nil, err

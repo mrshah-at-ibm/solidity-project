@@ -12,7 +12,7 @@ jobs:
   include:
     - stage: test
       script:
-        - ./scripts/unit-test.sh
+        - ./scripts/unit-tests.sh
       env:
         - TYPE=unit-test
     
