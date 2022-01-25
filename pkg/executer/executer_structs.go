@@ -7,6 +7,7 @@ import (
 	"github.com/mrshah-at-ibm/kaleido-project/pkg/mrstoken"
 	"github.com/mrshah-at-ibm/kaleido-project/pkg/signer"
 	"go.uber.org/zap"
+	// "golang.org/x/sync/semaphore"
 )
 
 type Executer struct {
@@ -17,6 +18,7 @@ type Executer struct {
 	ContractAddress string
 	Signer          *signer.Signer
 	Nonce           uint64
+	// Semaphore       *semaphore.Weighted
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ExecuterInterface

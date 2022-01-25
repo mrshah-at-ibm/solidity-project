@@ -57,35 +57,6 @@ func (r *Routes) SetupRoutes() {
 	})
 }
 
-// func SetupListener() error {
-// 	client, err := ethclient.Dial("http://node-1.network:32001")
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	contractAddress := common.HexToAddress("0xbfA009C3C51CA7718337a806754Fa0443d843913")
-// 	query := ethereum.FilterQuery{
-// 		Addresses: []common.Address{contractAddress},
-// 	}
-
-// 	logs := make(chan types.Log)
-// 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
-
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	for {
-// 		select {
-// 		case err := <-sub.Err():
-// 			return err
-// 		case vLog := <-logs:
-// 			fmt.Println("Received log")
-// 			fmt.Println("Log: ", vLog)
-// 		}
-// 	}
-// }
-
 func (r *Routes) baseRoute(w http.ResponseWriter, req *http.Request) {
 	logger := r.Logger.Named("baseRoute")
 
@@ -123,11 +94,7 @@ func (r *Routes) MintTransactionRoute(w http.ResponseWriter, req *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusOK)
-	// out, err := tx.MarshalBinary()
-	// if err != nil {
-	// 	logger.Error("Error Marshaling receipt")
-	// }
-	_, err = w.Write([]byte(tx.TxHash.String()))
+	err = json.NewEncoder(w).Encode(tx)
 	if err != nil {
 		fmt.Println("Error sending response")
 	}
@@ -201,7 +168,7 @@ func (r *Routes) BurnTokenRoute(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte(tx.TxHash.String()))
+	err = json.NewEncoder(w).Encode(tx)
 	if err != nil {
 		fmt.Println("Error sending response")
 	}
@@ -265,7 +232,7 @@ func (r *Routes) TransferTokenRoute(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte(tx.TxHash.String()))
+	err = json.NewEncoder(w).Encode(tx)
 	if err != nil {
 		fmt.Println("Error sending response")
 	}
@@ -273,50 +240,3 @@ func (r *Routes) TransferTokenRoute(w http.ResponseWriter, req *http.Request) {
 	return
 
 }
-
-func (r *Routes) deployContractRoute(w http.ResponseWriter, req *http.Request) {
-	// logger := r.Logger.Named("deployContractRoute")
-
-	return
-}
-
-func (r *Routes) getContractRoute(w http.ResponseWriter, req *http.Request) {
-	// logger := r.Logger.Named("getContractRoute")
-
-}
-
-// func (r *Routes) mintTokenRoute(w http.ResponseWriter, req *http.Request) {
-// 	logger := r.Logger.Named("mintTokenRoute")
-
-// 	_, err := w.Write([]byte("Placeholder mintTokenRoute"))
-// 	if err != nil {
-// 		logger.Error("Error sending response")
-// 	}
-// }
-
-// func (r *Routes) BurnTokenRoute(w http.ResponseWriter, req *http.Request) {
-// 	logger := r.Logger.Named("BurnTokenRoute")
-
-// 	_, err := w.Write([]byte("Placeholder BurnTokenRoute"))
-// 	if err != nil {
-// 		logger.Error("Error sending response")
-// 	}
-// }
-
-// func (r *Routes) TransferTokenRoute(w http.ResponseWriter, req *http.Request) {
-// 	logger := r.Logger.Named("TransferTokenRoute")
-
-// 	_, err := w.Write([]byte("Placeholder TransferTokenRoute"))
-// 	if err != nil {
-// 		logger.Error("Error sending response")
-// 	}
-// }
-
-// func (r *Routes) getTokenRoute(w http.ResponseWriter, req *http.Request) {
-// 	logger := r.Logger.Named("getTokenRoute")
-
-// 	_, err := w.Write([]byte("Placeholder getTokenRoute"))
-// 	if err != nil {
-// 		logger.Error("Error sending response")
-// 	}
-// }

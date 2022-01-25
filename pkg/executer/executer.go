@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,6 +20,7 @@ import (
 func NewExecuter(l *zap.Logger) (*Executer, error) {
 	e := &Executer{
 		Logger: l.Sugar().Named("Executer"),
+		// Semaphore: semaphore.NewWeighted(1),
 	}
 
 	conf, err := config.ReadConfig()
@@ -63,6 +63,10 @@ func NewExecuter(l *zap.Logger) (*Executer, error) {
 	e.Signer = s
 
 	contractaddress, err := config.ReadContractAddress("default")
+	if err != nil {
+		e.Logger.Error(err)
+		return nil, err
+	}
 	e.ContractAddress = contractaddress
 
 	return e, nil
@@ -88,7 +92,7 @@ func (e *Executer) DeployContract() error {
 			return err
 		}
 
-		ctx, _ := context.WithTimeout(context.TODO(), 10*time.Second)
+		ctx := context.TODO()
 		e.Logger.Info("Waiting for contract to be deployed ---")
 		_, err = bind.WaitDeployed(ctx, e.Client, tx)
 		if err != nil {
@@ -129,13 +133,21 @@ func (e *Executer) MintToken(to string) (*types.Receipt, error) {
 		return nil, errors.New("Contract is not initialized")
 	}
 
-	nonce, err := e.Client.PendingNonceAt(context.TODO(), e.Address)
-	if err != nil {
-		e.Logger.Error(err)
-		return nil, err
-	}
+	// e.Logger.Info("Acquiring semaphore")
+	// err := e.Semaphore.Acquire(context.TODO(), 1)
+	// if err != nil {
+	// 	e.Logger.Error(err)
+	// 	return nil, err
+	// }
 
-	e.Logger.Infow("PendingNonce", "nonce", nonce)
+	// nonce, err := e.Client.PendingNonceAt(context.TODO(), e.Address)
+	// if err != nil {
+	// 	e.Semaphore.Release(1)
+	// 	e.Logger.Error(err)
+	// 	return nil, err
+	// }
+
+	// e.Logger.Infow("PendingNonce", "nonce", nonce)
 	transactOpts := &bind.TransactOpts{
 		From:   e.Address,
 		Nonce:  big.NewInt(int64(e.Nonce)),
@@ -148,33 +160,39 @@ func (e *Executer) MintToken(to string) (*types.Receipt, error) {
 		Context:  context.TODO(),
 		// NoSend:    "",
 	}
-
-	e.Logger.Infow("Sending Transaction", "transaction", transactOpts, "nonce", transactOpts.Nonce, "account", transactOpts.From, "to", to)
-	tr, err := e.Contract.Mint(transactOpts, common.HexToAddress(to))
 	e.Nonce++
+
+	e.Logger.Infow("Sending Transaction", "nonce", transactOpts.Nonce, "account", transactOpts.From, "to", to)
+	tr, err := e.Contract.Mint(transactOpts, common.HexToAddress(to))
+	// e.Nonce++
 	if err != nil {
+		e.Logger.Errorw("Mint Error", "error", err)
 		if strings.Contains(err.Error(), "nonce too low") {
+			// e.Semaphore.Release(1)
 			return e.MintToken(to)
 		}
 
 		e.Logger.Error(err)
+		// e.Semaphore.Release(1)
 		return nil, err
 	}
 
 	receipt, err := bind.WaitMined(context.TODO(), e.Client, tr)
 	if err != nil {
 		e.Logger.Error(err)
+		// e.Semaphore.Release(1)
 		return nil, err
 	}
 
 	e.Logger.Infow("Transaction", "transaction", tr, "receipt", receipt)
+	// e.Semaphore.Release(1)
 	return receipt, nil
 }
 
 func (e *Executer) BurnToken(tokenid string) (*types.Receipt, error) {
 	if e.Contract == nil {
 		e.Logger.Error("Contract is not initialized")
-		return nil, errors.New("Contract is not initialized")
+		return nil, errors.New("contract is not initialized")
 	}
 
 	transactOpts := &bind.TransactOpts{
@@ -189,28 +207,20 @@ func (e *Executer) BurnToken(tokenid string) (*types.Receipt, error) {
 		Context:  context.TODO(),
 		// NoSend:    "",
 	}
+	e.Nonce++
 
 	tokenint, err := strconv.Atoi(tokenid)
 	if err != nil {
-		if err.Error() == "nonce too low" {
-			return e.BurnToken(tokenid)
-		}
 		e.Logger.Error(err)
 		return nil, err
 	}
 
 	tr, err := e.Contract.Burn(transactOpts, big.NewInt(int64(tokenint)))
 	if err != nil {
-		e.Logger.Error(err)
-		return nil, err
-	}
-
-	if err != nil {
-		// TODO: Check if following hits
+		e.Logger.Errorw("Burn Error", "error", err)
 		if strings.Contains(err.Error(), "nonce too low") {
 			return e.BurnToken(tokenid)
 		}
-
 		e.Logger.Error(err)
 		return nil, err
 	}
@@ -232,7 +242,7 @@ func (e *Executer) BurnToken(tokenid string) (*types.Receipt, error) {
 func (e *Executer) TransferToken(from string, to string, tokenid string) (*types.Receipt, error) {
 	if e.Contract == nil {
 		e.Logger.Error("Contract is not initialized")
-		return nil, errors.New("Contract is not initialized")
+		return nil, errors.New("contract is not initialized")
 	}
 
 	transactOpts := &bind.TransactOpts{
@@ -247,12 +257,10 @@ func (e *Executer) TransferToken(from string, to string, tokenid string) (*types
 		Context:  context.TODO(),
 		// NoSend:    "",
 	}
+	e.Nonce++
 
 	tokenint, err := strconv.Atoi(tokenid)
 	if err != nil {
-		if err.Error() == "nonce too low" {
-			return e.BurnToken(tokenid)
-		}
 		e.Logger.Error(err)
 		return nil, err
 	}
@@ -265,7 +273,7 @@ func (e *Executer) TransferToken(from string, to string, tokenid string) (*types
 	e.Logger.Infow("Transaction", "transaction", tr)
 
 	if err != nil {
-		// TODO: Check if following hits
+		e.Logger.Errorw("Transfer Error", "error", err)
 		if strings.Contains(err.Error(), "nonce too low") {
 			return e.TransferToken(from, to, tokenid)
 		}

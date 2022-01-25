@@ -1,4 +1,9 @@
 resource "kubernetes_manifest" "mrshah_app_certificate" {
+
+  depends_on = [
+    kubernetes_namespace.mrshah
+  ]
+
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
     "kind" = "Certificate"

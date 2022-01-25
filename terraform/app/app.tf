@@ -86,6 +86,7 @@ resource "kubernetes_deployment" "mrshah" {
       spec {
         container {
           image = "mrshah2/kp:app"
+          image_pull_policy = "Always"
           name  = "app-container"
           port {
             container_port = 3000
