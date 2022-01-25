@@ -29,10 +29,6 @@ func EnsurePrivateKey(account string) (*ecdsa.PrivateKey, error) {
 		if err != nil {
 			return nil, fmt.Errorf("generating key: %s", err)
 		}
-		return key, nil
-		if err != nil {
-			return nil, err
-		}
 
 		err = config.SavePrivateKey(account, key)
 		if err != nil {

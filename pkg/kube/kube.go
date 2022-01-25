@@ -66,7 +66,7 @@ func WriteConfigMap(namespace, name string, data map[string]string) error {
 	return nil
 }
 
-func ReadSecret(namespace, name string) (map[string]string, error) {
+func ReadSecret(namespace, name string) (map[string][]byte, error) {
 	var err error
 	if clientset == nil {
 		err = SetupClient()
@@ -79,11 +79,11 @@ func ReadSecret(namespace, name string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return s.StringData, nil
+	return s.Data, nil
 
 }
 
-func WriteSecret(namespace, name string, data map[string]string) error {
+func WriteSecret(namespace, name string, data map[string][]byte) error {
 	var err error
 	if clientset == nil {
 		err = SetupClient()
@@ -100,7 +100,8 @@ func WriteSecret(namespace, name string, data map[string]string) error {
 					Name:      name,
 					Namespace: namespace,
 				},
-				StringData: data,
+				Data: data,
+				// StringData: data,
 			}
 			_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), s1, metav1.CreateOptions{})
 			if err != nil {
@@ -113,7 +114,7 @@ func WriteSecret(namespace, name string, data map[string]string) error {
 		return err
 	}
 
-	s.StringData = data
+	s.Data = data
 	_, err = clientset.CoreV1().Secrets(namespace).Update(context.TODO(), s, metav1.UpdateOptions{})
 	if err != nil {
 		return err

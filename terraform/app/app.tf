@@ -16,7 +16,6 @@ resource "kubernetes_role" "allow-app" {
   rule {
     api_groups     = [""]
     resources      = ["secrets"]
-    resource_names = ["privatekey"]
     verbs          = ["get", "list", "watch", "create", "update", "patch", "delete"]
   }
   rule {
@@ -37,21 +36,11 @@ resource "kubernetes_role_binding" "allow-app" {
     kind      = "Role"
     name      = "allow-app"
   }
-  # subject {
-  #   kind      = "User"
-  #   name      = "admin"
-  #   api_group = "rbac.authorization.k8s.io"
-  # }
   subject {
     kind      = "ServiceAccount"
     name      = "default"
     namespace = "mrshah"
   }
-  # subject {
-  #   kind      = "Group"
-  #   name      = "system:masters"
-  #   api_group = "rbac.authorization.k8s.io"
-  # }
 }
 
 resource "kubernetes_config_map" "config" {
