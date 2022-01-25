@@ -62,6 +62,10 @@ This is a complete project to setup and run an app that meets the following requ
 
    The go build will take a long time to compile inside the container build as it cannot use any cache. So I started with the base build and pushed the image as `mrshah/kp:app-orig`. Then I would build the app locally and replace only the binary in the image. This was pushed as the image `mrshah/kp:app` and used everywhere. I would also restart the pod and watch it run - all in [one script](./tools/restart_and_watch.sh).
 
+10. Auth
+
+   The app is protected by tokens which can only be generated after authenticating against Github's SSO.
+
 ## Usage
 
 ### Prerequisites
@@ -81,6 +85,8 @@ This is a complete project to setup and run an app that meets the following requ
 1. [kubectl](https://kubernetes.io/docs/tasks/tools/)
 
 ### Deployment
+
+_Note: The namespaces are hardcoded in terraform. Please update them if needed._
 
 1. Network
 
@@ -135,7 +141,7 @@ This is a complete project to setup and run an app that meets the following requ
 
 4. Test the app
 
-   _Note: The app is currently running on https://app.mrshah.space_
+   _Notes: The app is currently running on https://app.mrshah.space_
 
    Go to the tests folder and run some shell scripts to test the APIs. Make sure to point the scripts to the domain of your app.
 
@@ -144,20 +150,28 @@ This is a complete project to setup and run an app that meets the following requ
 
    DOMAIN="https://app.mrshah.space"
    NUMBER_OF_CALLS="5"
+   AUTH_TOKEN="<Optional - put your auth token here>"
 
    # Test the app is running - it should return "Server running ok
    curl "${DOMAIN}"
 
    # Mint tokens - to address is hardcoded as per sample network
-   ./mint.sh ${DOMAIN} ${NUMBER_OF_CALLS}
+   ./mint.sh ${DOMAIN} ${NUMBER_OF_CALLS} ${AUTH_TOKEN}
 
    # Transfer tokens - addresses are hardcoded as per sample network
-   ./transfer.sh ${DOMAIN} ${NUMBER_OF_CALLS}
+   ./transfer.sh ${DOMAIN} ${NUMBER_OF_CALLS} ${AUTH_TOKEN}
 
    # Burn tokens - address is hardcoded as per sample network   
-   ./burn.sh ${DOMAIN} ${NUMBER_OF_CALLS}
+   ./burn.sh ${DOMAIN} ${NUMBER_OF_CALLS} ${AUTH_TOKEN}
    ```
 
+5. Enable Github SSO auth
+
+   To enable Github's SSO based auth, add a secret to the application's namespace with clientid, clientsecret and redirect url.
+   ```bash
+   kubectl create secret generic -n mrshah githublogin --from-literal=clientid=<myclientid> --from-literal=clientsecret=<mysecret> --from-literal=redirecturl=https://<mydomain>/login/github/callback
+   ```
+   
 ## Future improvements:
 
 1. Terraform variables
@@ -200,9 +214,9 @@ This is a complete project to setup and run an app that meets the following requ
 
    Currently a static contract is deployed and metadata is stored. The code has ability to deploy any contract in future. The contract can be deployed and the abi generated on the fly by exposing an API. 
 
-10. Auth
+10. Metrics
 
-   Currently the app and the contract don't have any authentication mechanism. Both should be protected.
+   The app is not instrumented to have metrics server or capture metrics.
 
 # Challenges
 

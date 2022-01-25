@@ -1,6 +1,8 @@
 build
-tests
 **/*tfstate*
 **/*lock.hcl
 **/kubeconfig.yaml
 **/.terraform
+tmp
+cmd/print-struct
+secrets
