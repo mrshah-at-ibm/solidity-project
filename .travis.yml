@@ -30,6 +30,6 @@ jobs:
     
     - stage: image
       script:
-        - ./sctips/image-build.sh
+        - ./scripts/image-build.sh
       env:
         - TYPE=image-build
