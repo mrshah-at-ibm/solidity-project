@@ -1,0 +1,10 @@
+nodeurl: http://127.0.0.1:22001
+addresses:
+- 0xed9d02e382b34818e88b88a309c7fe71e65f419d
+claims:
+claimexpiration: "30"
+receiptwaitmin: 1
+receiptwaitmax: 10
+rpctimeout: 2
+numworkers: 1
+contracts: []
