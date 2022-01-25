@@ -1,0 +1,11 @@
+nodeurl: http://node-1.network:32001
+addresses:
+- 0xCCC57721432bA1ca00675D708EDB367e7221b765
+claims:
+- address: 0xCCC57721432bA1ca00675D708EDB367e7221b765
+  claimtime: 1642892725
+claimexpiration: 2s
+receiptwaitmin: 1
+receiptwaitmax: 10
+rpctimeout: 2
+numworkers: 1
