@@ -1,0 +1,35 @@
+dist: xenial
+
+language: go
+
+services:
+  - docker
+ 
+go:
+  - 1.17.x
+
+jobs:
+  include:
+    - stage: test
+      script:
+        - ./scripts/unit-test.sh
+      env:
+        - TYPE=unit-test
+    
+    - stage: test
+      script:
+        - ./scripts/go-sec.sh
+      env:
+        - TYPE=go-sec
+
+    - stage : build
+      script:
+        - ./scripts/build.sh
+      env:
+        - TYPE=build
+    
+    - stage: image
+      script:
+        - ./sctips/image-build.sh
+      env:
+        - TYPE=image-build
