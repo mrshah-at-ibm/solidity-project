@@ -4,19 +4,19 @@ This is a complete project to setup and run an app that meets the following requ
 
 1. Sign Transactions
 
-   The app [generates](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/executer/utils.go#L11-L47) a private key on start and [saves it in a secret](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L155).
+   The app [generates](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/executer/utils.go#L11-L43) a private key on start and [saves it in a secret](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/config/config.go#L316).
 
 2. Deploy an instance of ERC-721 contract, and retain knowledge of its contract
 
-   The app [deploys](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/executer/executer.go#L75-L128) instance of an ERC-721 contract and [saves](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L113-L216) the address in a configmap
+   The app [deploys](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/executer/executer.go#L105) instance of an ERC-721 contract and [saves](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/config/config.go#L115-L197) the address in a configmap
 
 3. Mint, burn and transfer ERC-721 tokens
 
-   The app provides API to [mint](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L113-L216), [burn](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L113-L216) and [transfer](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/routes/routes.go#L180-L242) ERC-721 tokens
+   The app provides API to [mint](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/routes/routes.go#L105), [burn](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/routes/routes.go#L179) and [transfer](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/routes/routes.go#L216) ERC-721 tokens
 
 4. The app should be scaleable
 
-   The app can be scaled by updating the replicas of the deployment spec (either using [terraform](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/terraform/app/app.tf#L74) or manually).
+   The app can be scaled by updating the replicas of the deployment spec (either using [terraform](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/terraform/app/app.tf#L63) or manually).
 
 5. The app should not use local storage
 
@@ -26,7 +26,7 @@ This is a complete project to setup and run an app that meets the following requ
 
 1. TLS enabled for the API
 
-   [cert-manager](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/terraform/cert-manager/cert-manager.tf) based certificates are issued. terraform is provided for [certificates](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/terraform/app/app.tf#L74) to be generated using AKME (Let's Encrypt) servers.
+   [cert-manager](./terraform/cert-manager/cert-manager.tf) based certificates are issued. terraform is provided for [certificates](./terraform/app/certificate.tf) to be generated using AKME (Let's Encrypt) servers.
 
 2. IaC to deploy network, certificate manager & app
 
@@ -42,7 +42,7 @@ This is a complete project to setup and run an app that meets the following requ
 
 5. Option to use multiple addresses for the app itself
 
-   Started with [ClaimAddress](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L113) to claim and [maintain ownership](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L155) of an address exclusively. Will switch to UseAddress to use one of the addresses in the list non-exclusively.
+   Started with [ClaimAddress](https://github.com/mrshah-at-ibm/solidity-project/blob/5ca6bc26ee39c4184d29acd2b330e3c74809ba02/pkg/config/config.go#L115) to claim and [retain ownership](https://github.com/mrshah-at-ibm/solidity-project/blob/146a84016d603fcd00fb4cbf2e2e5c1f3d4737d4/pkg/config/config.go#L199) of an address exclusively. Will switch to UseAddress to use one of the addresses in the list non-exclusively.
 
 6. Tested on multiple types of kubernetes clusters
 
@@ -64,7 +64,7 @@ This is a complete project to setup and run an app that meets the following requ
 
 10. Auth
 
-   The app is protected by tokens which can only be generated after authenticating against Github's SSO.
+    The app is protected by tokens which can only be generated after authenticating against Github's SSO.
 
 ## Usage
 
