@@ -32,7 +32,7 @@ func (r *Routes) SetupRoutes() {
 	r.router.Get("/", r.baseRoute)
 	r.router.Route("/transaction", func(r1 chi.Router) {
 		r1.Use(validateToken)
-		r1.Post("/mint/{toaddress}", r.MintTransactionRoute)
+		r1.Post("/token/mint/{toaddress}", r.MintTransactionRoute)
 		r1.Post("/token/{token}/burn", r.BurnTokenRoute)
 		r1.Post("/token/{token}/transfer", r.TransferTokenRoute)
 
