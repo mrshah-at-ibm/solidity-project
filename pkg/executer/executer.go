@@ -36,7 +36,30 @@ func NewExecuter(l *zap.Logger) (*Executer, error) {
 
 	e.Client = backend
 
-	addrClaimed, err := config.ClaimAddress()
+	// Exclusive addresses
+
+	// addrClaimed, err := config.ClaimAddress()
+	// if err != nil {
+	// 	e.Logger.Error(err)
+	// 	return nil, err
+	// }
+
+	// go func(addr string) {
+
+	// 	ticker := time.NewTicker(d / 2 * time.Second)
+
+	// 	for {
+	// 		select {
+	// 		case t := <-ticker.C:
+	// 			fmt.Println("Retaining ownership of address", t)
+	// 			config.RetainOwnership(addr)
+	// 		}
+	// 	}
+	// }(addrClaimed[0])
+
+	// END -Exclusive addresses
+
+	addrClaimed, err := config.PickAddress()
 	if err != nil {
 		e.Logger.Error(err)
 		return nil, err
@@ -45,6 +68,7 @@ func NewExecuter(l *zap.Logger) (*Executer, error) {
 	addr := common.HexToAddress(addrClaimed[0])
 	e.Address = addr
 
+	e.Logger.Info("Ensuring private key")
 	key, err := EnsurePrivateKey(addrClaimed[0])
 	if err != nil {
 		e.Logger.Error(err)
@@ -69,14 +93,20 @@ func NewExecuter(l *zap.Logger) (*Executer, error) {
 	}
 	e.ContractAddress = contractaddress
 
+	err = e.DeployContract()
+	if err != nil {
+		e.Logger.Error(err)
+		return nil, err
+	}
+
 	return e, nil
 }
 
 func (e *Executer) DeployContract() error {
 	if e.ContractAddress == "" {
 		transactOpts := &bind.TransactOpts{
-			From: e.Address,
-			// Nonce:     "",
+			From:   e.Address,
+			Nonce:  big.NewInt(int64(e.Nonce)),
 			Signer: e.Signer.SignTx,
 			// Value:     "",
 			// GasPrice:  "",
@@ -86,8 +116,14 @@ func (e *Executer) DeployContract() error {
 			Context:  context.TODO(),
 			// NoSend:    "",
 		}
+		e.Nonce++
 		addr, tx, crt, err := mrstoken.DeployMRSToken(transactOpts, e.Client, "mrshah token", "MRS", "www.mrshah.space")
 		if err != nil {
+			e.Logger.Errorw("Deploy Error", "error", err)
+			if strings.Contains(err.Error(), "nonce too low") {
+				// e.Semaphore.Release(1)
+				return e.DeployContract()
+			}
 			e.Logger.Error(err)
 			return err
 		}

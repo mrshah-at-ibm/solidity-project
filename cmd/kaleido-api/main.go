@@ -23,10 +23,10 @@ func main() {
 		panic(errors.Wrap(err, "Unable to setup executer"))
 	}
 
-	err = e.DeployContract()
-	if err != nil {
-		panic(errors.Wrap(err, "Unable to setup contract"))
-	}
+	// err = e.DeployContract()
+	// if err != nil {
+	// 	panic(errors.Wrap(err, "Unable to setup contract"))
+	// }
 
 	r, err := routes.New(logger, e)
 	r.SetupRoutes()
