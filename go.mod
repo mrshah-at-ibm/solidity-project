@@ -3,6 +3,7 @@ module github.com/mrshah-at-ibm/kaleido-project
 go 1.17
 
 require (
+	github.com/aidarkhanov/nanoid v1.0.8
 	github.com/ethereum/go-ethereum v1.10.15
 	github.com/go-chi/chi v1.5.4
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
