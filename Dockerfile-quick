@@ -1,0 +1,5 @@
+FROM mrshah2/kp:app-orig
+
+COPY ./build/bin/kaleido-api /
+
+CMD ["/kaleido-api"]
